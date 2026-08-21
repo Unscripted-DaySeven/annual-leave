@@ -10,7 +10,7 @@
  *    2. Edit the CONFIG block below (token + PIN at minimum).
  *    3. Run `firstRunSetup` once and grant the permissions it asks for.
  *    4. Deploy ▸ New deployment ▸ Web app ▸ Execute as *me*,
- *       Who has access *Anyone*. Copy the /exec URL into assets/config.js.
+ *       Who has access *Anyone*. Copy the /exec URL into config.js.
  * ============================================================================
  */
 
@@ -24,9 +24,9 @@ var CONFIG = {
   MANAGER_PIN: '2468',
 
   // Shared Google Calendar that approved leave is written to.
-  // Leave as 'primary' to use the account that owns this script, or paste a
+  // 'primary' uses the account that owns this script; otherwise paste a
   // calendar ID (Calendar settings ▸ Integrate calendar ▸ Calendar ID).
-  CALENDAR_ID: 'primary',
+  CALENDAR_ID: 'c_7bae8250a364b62d5ffe5ff9a7029f98473fec46c5ea427b0de852a785c97e1c@group.calendar.google.com',
 
   // Add the employee as a guest so the booking also lands on their own
   // calendar. Set to false if you only want the shared team calendar.
@@ -120,7 +120,7 @@ function json(obj) {
 
 function requireToken(token) {
   if (String(token || '') !== String(CONFIG.API_TOKEN)) {
-    throw new Error('Bad or missing token — check API_TOKEN in Code.gs matches assets/config.js');
+    throw new Error('Bad or missing token — check API_TOKEN in Code.gs matches config.js');
   }
 }
 
@@ -693,7 +693,7 @@ function onOpen() {
 function showUrls() {
   var base = ScriptApp.getService().getUrl();
   var msg = base
-    ? 'Web app URL (paste into assets/config.js):\n' + base +
+    ? 'Web app URL (paste into config.js):\n' + base +
       '\n\nWhole-team calendar feed:\n' + base + '?action=ics&token=' + CONFIG.API_TOKEN
     : 'Not deployed yet — use Deploy ▸ New deployment ▸ Web app first.';
   SpreadsheetApp.getUi().alert('Leave tracker URLs', msg, SpreadsheetApp.getUi().ButtonSet.OK);
