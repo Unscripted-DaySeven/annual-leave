@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Annual Leave</title>
+<meta name="description" content="Book and track annual leave, half days and bank holidays, synced to Google Calendar.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌴</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="banner" class="banner" hidden></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true">🌴</span>
+    <div>
+      <h1 id="company-name">Annual Leave</h1>
+      <p class="leave-year" id="leave-year-label">&nbsp;</p>
+    </div>
+  </div>
+
+  <nav class="tabs" id="tabs" aria-label="Sections">
+    <button class="tab is-active" data-view="dashboard">Dashboard</button>
+    <button class="tab" data-view="book">Book leave</button>
+    <button class="tab" data-view="calendar">Calendar</button>
+    <button class="tab" data-view="team">Team</button>
+    <button class="tab" data-view="approvals">Approvals <span class="pill" id="pending-count" hidden>0</span></button>
+    <button class="tab" data-view="setup">Setup</button>
+  </nav>
+
+  <div class="topbar-actions">
+    <button class="btn btn-ghost" id="refresh-btn" title="Reload from the sheet">Refresh</button>
+    <button class="btn btn-ghost" id="manager-btn">Manager mode</button>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ── DASHBOARD ─────────────────────────────────────────────────────── -->
+  <section class="view is-active" data-view="dashboard">
+    <div class="stat-row" id="stats"></div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head">
+          <h2>Who's off</h2>
+          <span class="muted" id="strip-range"></span>
+        </div>
+        <div class="strip-wrap"><div id="today-strip" class="strip"></div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Allowance used</h2><span class="muted">this leave year</span></div>
+        <div id="allowance-list" class="allowance-list"></div>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-swatch" style="background:var(--accent)"></span>Taken</span>
+          <span class="legend-item"><span class="legend-swatch" style="background:var(--accent);opacity:.45"></span>Booked ahead</span>
+          <span class="legend-item"><span class="legend-swatch" style="background:var(--pending);opacity:.5"></span>Pending</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Upcoming leave</h2>
+        <label class="inline-field">
+          <span class="muted">Next</span>
+          <select id="upcoming-window">
+            <option value="30">30 days</option>
+            <option value="60" selected>60 days</option>
+            <option value="90">90 days</option>
+            <option value="365">12 months</option>
+          </select>
+        </label>
+      </div>
+      <div class="table-wrap"><table class="table" id="upcoming-table"></table></div>
+    </div>
+  </section>
+
+  <!-- ── BOOK LEAVE ────────────────────────────────────────────────────── -->
+  <section class="view" data-view="book">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><h2>Book time off</h2></div>
+        <form id="book-form" class="form">
+          <label class="field">
+            <span>Employee</span>
+            <select id="b-employee" required></select>
+          </label>
+
+          <div class="field-row">
+            <label class="field">
+              <span>Leave type</span>
+              <select id="b-type">
+                <option value="annual">Annual leave</option>
+                <option value="toil">TOIL / lieu day</option>
+                <option value="unpaid">Unpaid leave</option>
+                <option value="sick">Sick leave</option>
+                <option value="parental">Parental leave</option>
+                <option value="other">Other</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Duration</span>
+              <select id="b-daytype">
+                <option value="full">Full day(s)</option>
+                <option value="am">Half day — morning</option>
+                <option value="pm">Half day — afternoon</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="field-row">
+            <label class="field">
+              <span>First day</span>
+              <input type="date" id="b-start" required>
+            </label>
+            <label class="field" id="b-end-field">
+              <span>Last day</span>
+              <input type="date" id="b-end">
+            </label>
+          </div>
+
+          <label class="field">
+            <span>Note <span class="muted">(optional)</span></span>
+            <input type="text" id="b-note" maxlength="200" placeholder="e.g. family holiday, back Monday">
+          </label>
+
+          <div id="book-summary" class="summary"></div>
+          <div id="book-clash"></div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" id="book-submit">Request leave</button>
+            <span class="muted" id="book-status"></span>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Their booked leave</h2></div>
+        <div id="employee-leave" class="mini-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CALENDAR ──────────────────────────────────────────────────────── -->
+  <section class="view" data-view="calendar">
+    <div class="card">
+      <div class="card-head cal-head">
+        <div class="seg" role="tablist">
+          <button class="seg-btn is-on" id="cal-month-btn">Month</button>
+          <button class="seg-btn" id="cal-year-btn">Year wall chart</button>
+        </div>
+        <div class="cal-nav">
+          <button class="btn btn-ghost" id="cal-prev" aria-label="Previous">←</button>
+          <strong id="cal-label"></strong>
+          <button class="btn btn-ghost" id="cal-next" aria-label="Next">→</button>
+          <button class="btn btn-ghost" id="cal-today">Today</button>
+        </div>
+        <label class="inline-field">
+          <span class="muted">Team</span>
+          <select id="cal-team"><option value="">All</option></select>
+        </label>
+      </div>
+
+      <div id="cal-month" class="month"></div>
+      <div id="cal-year" class="year-wrap" hidden></div>
+      <div class="legend" id="cal-legend"></div>
+    </div>
+  </section>
+
+  <!-- ── TEAM ──────────────────────────────────────────────────────────── -->
+  <section class="view" data-view="team">
+    <div class="card">
+      <div class="card-head">
+        <h2>Employees</h2>
+        <button class="btn btn-primary" id="add-employee-btn">Add employee</button>
+      </div>
+      <div class="table-wrap"><table class="table" id="team-table"></table></div>
+      <p class="muted small">Used and remaining count annual leave and TOIL only. Sick, unpaid and parental leave are tracked but not deducted from the allowance.</p>
+    </div>
+  </section>
+
+  <!-- ── APPROVALS ─────────────────────────────────────────────────────── -->
+  <section class="view" data-view="approvals">
+    <div class="card">
+      <div class="card-head">
+        <h2>Awaiting approval</h2>
+        <span class="muted" id="approvals-hint"></span>
+      </div>
+      <div id="approvals-list" class="approvals"></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Recently decided</h2></div>
+      <div class="table-wrap"><table class="table" id="decided-table"></table></div>
+    </div>
+  </section>
+
+  <!-- ── SETUP ─────────────────────────────────────────────────────────── -->
+  <section class="view" data-view="setup">
+    <div class="card">
+      <div class="card-head"><h2>Connection</h2></div>
+      <div id="conn-status" class="conn"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Calendar feeds</h2></div>
+      <p class="muted">Subscribe once and approved leave keeps itself up to date. In Google Calendar: <em>Other calendars ▸ + ▸ From URL</em>.</p>
+      <div id="feeds" class="feeds"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Settings</h2></div>
+      <form id="settings-form" class="form">
+        <div class="field-row">
+          <label class="field"><span>Company name</span><input type="text" id="s-company"></label>
+          <label class="field"><span>Bank holiday region</span>
+            <select id="s-region">
+              <option value="england-and-wales">England &amp; Wales</option>
+              <option value="scotland">Scotland</option>
+              <option value="northern-ireland">Northern Ireland</option>
+            </select>
+          </label>
+        </div>
+        <div class="field-row">
+          <label class="field"><span>Leave year starts</span>
+            <select id="s-year-start">
+              <option value="01-01">1 January</option>
+              <option value="04-01">1 April</option>
+              <option value="07-01">1 July</option>
+              <option value="09-01">1 September</option>
+              <option value="10-01">1 October</option>
+            </select>
+          </label>
+          <label class="field"><span>Default allowance (days)</span><input type="number" id="s-allowance" min="0" step="0.5"></label>
+        </div>
+        <div class="field-row">
+          <label class="field"><span>Warn when this many are off in a team</span><input type="number" id="s-max-off" min="1" step="1"></label>
+          <label class="field"><span>Approval required</span>
+            <select id="s-approval"><option value="true">Yes — requests start as pending</option><option value="false">No — bookings are instant</option></select>
+          </label>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Save settings</button>
+          <span class="muted" id="settings-status"></span>
+        </div>
+      </form>
+    </div>
+  </section>
+</main>
+
+<!-- ── MODAL ──────────────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="card-head"><h2 id="modal-title">Employee</h2><button class="btn btn-ghost" id="modal-close" aria-label="Close">✕</button></div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
