@@ -1,15 +1,14 @@
 /* ---------------------------------------------------------------------------
  *  Annual Leave Tracker — front-end configuration
- *  Edit the two values below, commit, and the site is live.
  * ------------------------------------------------------------------------- */
 window.LEAVE_CONFIG = {
 
-  // Paste the /exec URL from Apps Script ▸ Deploy ▸ New deployment ▸ Web app.
-  // Leave it empty to run the site in demo mode with sample data.
-  apiUrl: '',
+  // The /exec URL from Apps Script ▸ Deploy ▸ Manage deployments.
+  // If you ever deploy a brand-new deployment, paste the new URL here.
+  apiUrl: 'https://script.google.com/macros/s/AKfycby10-nftmVhna91VqjpqknT_Wl58hruz8pGN4ct4cTU3psoMhqaVfQpSf6aQKbdnUy6Cw/exec',
 
   // Must match API_TOKEN in Code.gs exactly.
-  token: '',
+  token: 'aqwfHSruZvkhJdLSWxXIPyfohvqfcZmNbwfjI0gH',
 
   // Shown in the header until the sheet's own setting loads.
   companyName: 'Day Seven',

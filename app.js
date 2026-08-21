@@ -176,7 +176,11 @@ function esc(s) {
 function empById(id) {
   return state.employees.filter(function (e) { return String(e.id) === String(id); })[0];
 }
-function isActive(e) { return String(e.active) !== 'false'; }
+/* Google Sheets turns the strings "true"/"false" into the booleans TRUE/FALSE,
+   which come back from the API upper-cased. Normalise before comparing. */
+function isFalse(v) { return String(v).trim().toLowerCase() === 'false'; }
+function isTrue(v)  { return String(v).trim().toLowerCase() === 'true'; }
+function isActive(e) { return !isFalse(e.active); }
 
 // ═══ API ══════════════════════════════════════════════════════════════════
 
@@ -367,7 +371,7 @@ function demoAct(action, payload, okMessage) {
         if (lv.days <= 0) throw new Error('That range is all weekend / bank holiday');
         if (!lv.id) {
           lv.id = 'lv-' + Date.now().toString(36);
-          lv.status = String(state.settings.approvalRequired) === 'false' ? 'approved' : 'pending';
+          lv.status = isFalse(state.settings.approvalRequired) ? 'approved' : 'pending';
           lv.createdAt = new Date().toISOString();
           state.leave.push(lv);
         } else {
@@ -869,7 +873,7 @@ function renderTeam() {
   var rows = state.employees.map(function (emp) {
     var s = employeeStats(emp);
     return '<tr' + (isActive(emp) ? '' : ' style="opacity:.5"') + '>' +
-      '<td>' + avatar(emp) + esc(emp.name) + (String(emp.manager) === 'true' ? ' <span class="tag">manager</span>' : '') + '</td>' +
+      '<td>' + avatar(emp) + esc(emp.name) + (isTrue(emp.manager) ? ' <span class="tag">manager</span>' : '') + '</td>' +
       '<td class="muted">' + esc(emp.email || '—') + '</td>' +
       '<td>' + esc(emp.team || '—') + '</td>' +
       '<td class="num">' + round(s.entitlement) + '</td>' +
@@ -907,13 +911,13 @@ function employeeModal(emp) {
         '<label class="field"><span>Carried over</span><input id="e-carry" type="number" step="0.5" min="0" value="' +
           esc(emp.carryOver || 0) + '"></label>' +
         '<label class="field"><span>Status</span><select id="e-active">' +
-          '<option value="true"' + (String(emp.active) !== 'false' ? ' selected' : '') + '>Active</option>' +
-          '<option value="false"' + (String(emp.active) === 'false' ? ' selected' : '') + '>Left / inactive</option>' +
+          '<option value="true"' + (!isFalse(emp.active) ? ' selected' : '') + '>Active</option>' +
+          '<option value="false"' + (isFalse(emp.active) ? ' selected' : '') + '>Left / inactive</option>' +
         '</select></label>' +
       '</div>' +
       '<label class="field"><span>Can approve leave</span><select id="e-manager">' +
-        '<option value="false"' + (String(emp.manager) !== 'true' ? ' selected' : '') + '>No</option>' +
-        '<option value="true"' + (String(emp.manager) === 'true' ? ' selected' : '') + '>Yes</option>' +
+        '<option value="false"' + (!isTrue(emp.manager) ? ' selected' : '') + '>No</option>' +
+        '<option value="true"' + (isTrue(emp.manager) ? ' selected' : '') + '>Yes</option>' +
       '</select></label>' +
       '<div class="form-actions"><button class="btn btn-primary" type="submit">Save</button>' +
       '<button class="btn" type="button" id="emp-cancel">Cancel</button></div>' +
@@ -1020,7 +1024,7 @@ function renderSetup() {
   $('#s-year-start').value = state.settings.leaveYearStart || '01-01';
   $('#s-allowance').value = state.settings.defaultAllowance || 25;
   $('#s-max-off').value = state.settings.maxOffPerDay || 2;
-  $('#s-approval').value = String(state.settings.approvalRequired) === 'false' ? 'false' : 'true';
+  $('#s-approval').value = isFalse(state.settings.approvalRequired) ? 'false' : 'true';
 }
 
 function feedRow(name, url) {
@@ -1094,7 +1098,7 @@ function wire() {
     $('#book-status').textContent = 'Saving…';
 
     act('saveLeave', payload,
-        String(state.settings.approvalRequired) === 'false' ? 'Leave booked' : 'Request sent for approval')
+        isFalse(state.settings.approvalRequired) ? 'Leave booked' : 'Request sent for approval')
       .then(function () {
         $('#b-note').value = '';
         $('#book-status').textContent = '';

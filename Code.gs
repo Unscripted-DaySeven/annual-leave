@@ -210,6 +210,11 @@ function findRowById(sheet, id) {
   return -1;
 }
 
+/* Sheets coerces the strings "true"/"false" into booleans, which read back as
+   "TRUE"/"FALSE". Normalise before comparing. */
+function isFalse(v) { return String(v).trim().toLowerCase() === 'false'; }
+function isTrue(v)  { return String(v).trim().toLowerCase() === 'true'; }
+
 function uid(prefix) {
   return prefix + '-' + Utilities.getUuid().split('-')[0] + Date.now().toString(36).slice(-4);
 }
@@ -253,8 +258,8 @@ function saveEmployee(body) {
     allowance: emp.allowance === '' || emp.allowance == null ? settings.defaultAllowance : emp.allowance,
     carryOver: emp.carryOver == null || emp.carryOver === '' ? 0 : emp.carryOver,
     startDate: emp.startDate || '',
-    active: emp.active === false || emp.active === 'false' ? 'false' : 'true',
-    manager: emp.manager === true || emp.manager === 'true' ? 'true' : 'false'
+    active: emp.active === false || isFalse(emp.active) ? 'false' : 'true',
+    manager: emp.manager === true || isTrue(emp.manager) ? 'true' : 'false'
   };
 
   var row = emp.id ? findRowById(sheet, emp.id) : -1;
@@ -314,7 +319,7 @@ function saveLeave(body) {
     existing = readSheet(SHEETS.leave).filter(function (r) { return String(r.id) === String(lv.id); })[0];
   }
 
-  var approvalRequired = String(settings.approvalRequired) !== 'false';
+  var approvalRequired = !isFalse(settings.approvalRequired);
   var status = lv.status || (existing && existing.status) || (approvalRequired ? 'pending' : 'approved');
   if (lv.status && lv.status !== (existing && existing.status)) requirePin(body.pin);
 
